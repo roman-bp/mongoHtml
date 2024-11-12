@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add User</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Add New User</h1>
+    <a href="index.html" class="add-user-button">на головну</a>
+    
+    <!-- Блок для сповіщень -->
+    <div id="notification" class="notification"></div>
+
+    <form id="userForm" enctype="multipart/form-data" style="background-color: #fff; padding: 20px; border-radius: 5px; max-width: 500px; margin: auto;">
+        <input type="text" id="name" placeholder="Name" required style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;">
+        <input type="email" id="email" placeholder="Email" required style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;">
+        <input type="text" id="phone" placeholder="Phone" style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;">
+        <input type="text" id="address" placeholder="Address" style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;">
+        <textarea id="notes" placeholder="Notes" style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;"></textarea>
+        <label>Avatar: <input type="file" id="avatar" accept="image/*" style="margin-bottom: 10px;"></label>
+        <label>Files: <input type="file" id="files" multiple style="margin-bottom: 10px;"></label>
+        <button type="submit" style="padding: 10px 15px; background-color: #007bff; color: #fff; border: none; border-radius: 5px;">Add User</button>
+    </form>
+
+    <h2>Додати файли до існуючого користувача</h2>
+    <form id="addFilesForm" enctype="multipart/form-data" style="background-color: #fff; padding: 20px; border-radius: 5px; max-width: 500px; margin: auto;">
+        <input type="text" id="userId" placeholder="User ID" required style="display: block; width: 100%; padding: 10px; margin-bottom: 10px;">
+        <label>New Files: <input type="file" id="newFiles" multiple style="margin-bottom: 10px;"></label>
+        <button type="submit" style="padding: 10px 15px; background-color: #28a745; color: #fff; border: none; border-radius: 5px;">Add Files</button>
+    </form>
+
+    <script>
+        // Відображення повідомлення
+        function showNotification(type, message) {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Валідація email
+        function validateEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return re.test(String(email).toLowerCase());
+        }
+
+        // Валідація телефону
+        function validatePhone(phone) {
+            const re = /^\d{10,}$/;
+            return re.test(phone);
+        }
+
+        // Додавання нового користувача
+        document.getElementById('userForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!name) {
+                showNotification('error', 'Name is required.');
+                return;
+            }
+            if (!validateEmail(email)) {
+                showNotification('error', 'Invalid email format.');
+                return;
+            }
+            if (phone && !validatePhone(phone)) {
+                showNotification('error', 'Invalid phone number format.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('email', email);
+            formData.append('phone', phone);
+            formData.append('address', document.getElementById('address').value);
+            formData.append('notes', document.getElementById('notes').value);
+
+            const avatarFile = document.getElementById('avatar').files[0];
+            if (avatarFile) {
+                formData.append('avatar', avatarFile);
+            }
+
+            const files = document.getElementById('files').files;
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            fetch('http://localhost:3000/json-users', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showNotification('success', 'User added successfully!');
+                document.getElementById('userForm').reset();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while adding the user.');
+            });
+        });
+
+        // Додавання нових файлів до існуючого користувача
+        document.getElementById('addFilesForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                showNotification('error', 'User ID is required.');
+                return;
+            }
+
+            const formData = new FormData();
+            const newFiles = document.getElementById('newFiles').files;
+            for (let i = 0; i < newFiles.length; i++) {
+                formData.append('files', newFiles[i]);
+            }
+
+            fetch(`http://localhost:3000/json-users/${userId}/add-files`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showNotification('success', 'Files added successfully!');
+                document.getElementById('addFilesForm').reset();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while adding files.');
+            });
+        });
+    </script>
+</body>
+</html>
